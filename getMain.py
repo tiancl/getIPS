@@ -8,33 +8,41 @@ from bs4 import BeautifulSoup
 import lxml
 from random import choice
 
+"""
+param：
+timeout:可自定义修改
+targeturl：可自定义修改为爬取网站
+使用方法：
+ips=getIP()
+ips.getProxies()
+proxies=ips.proxies
+"""
+class getIP(object):
+    def __init__(self):
+        self.tag=1      #页数
+        self.timeout=2  #超时时间
+        self.findurl="https://www.kuaidaili.com/free/inha/"  #获取ip网站
+        self.targeturl='https://www.baidu.com/'   #需要爬取的网站
+        #消息头
+        self.headers= {'User-Agent':'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36'}
+        self.proxies={}
+        self.iplist=[]
+        self.splist=lambda seq,n:zip(*[iter(seq)]*n)
+    
+    def getProxies(self):
+        while len(self.proxies)==0:
+            self.sourceurl=self.findurl+'%s/' % self.tag
+            cont=requests.get(self.sourceurl,headers=self.headers)
+            for i in BeautifulSoup(cont.text,'lxml').find('table',class_="table table-bordered table-striped").find_all("td"):
+                self.iplist.append(i.get_text())
+            for j in list(self.splist(self.iplist,7)):
+                self.proxies['%s'%j[3]]='%s://%s:%s' % (j[3],j[0],j[1])
+                if requests.get(self.targeturl,headers=self.headers,timeout=self.timeout,proxies=self.proxies).status_code==200:
+                    break
+                self.proxies.clear()  
+            self.tag+=1
 
-num_url='https://www.v2ex.com/'
-headers = {'User-Agent':'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.152 Safari/537.36'}
-
-
-list1=[]
-splist=lambda seq,n:zip(*[iter(seq)]*n)
-num_list=[]
-ii=1
-while len(num_list)<=10:
-    try:
-        url='https://www.kuaidaili.com/free/inha/%s/' % ii
-        cont=requests.get(url,headers=headers)
-        cont.encoding='utf-8'
-        for i in BeautifulSoup(cont.text,'lxml').find('table',class_="table table-bordered table-striped").find_all("td"):
-            list1.append(i.get_text())
-        
-        for j in list(splist(list1,7)):
-            try:
-                if requests.get(num_url,headers=headers,timeout=0.1).status_code==200:
-                    num_list.append((j[0],j[1],j[3]))
-            except Exception as e:
-                print(e)
-                continue
-        list1.clear()
-        ii+=1
-    except Exception as e:
-        print(e)
-        break    
-print(choice(num_list))
+if __name__=='__main__':
+    ips=getIP()
+    ips.getProxies()
+    print(ips.proxies)
